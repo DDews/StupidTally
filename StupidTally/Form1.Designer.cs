@@ -385,7 +385,7 @@ namespace StupidTally
 			DrawHistogram();
 		}
 
-		private Bitmap DrawHistogram() {
+		private void DrawHistogram() {
 			if (dataGrid.Rows.Count > 1) {
 				List<double> values = new List<double>();
 				List<double> positions = new List<double>();
@@ -429,7 +429,6 @@ namespace StupidTally
 				plt.SetAxisLimits(yMin: 0,yMax: maxY + 1,xMin: minX - 1,xMax: maxX + 1);
 				scottPlot.Refresh();
 			}
-			return null;
 		}
 
 		private void dataGridView1_SortCompare(object sender, DataGridViewSortCompareEventArgs e) {

@@ -320,13 +320,6 @@ namespace StupidTally
 			} else {
 				MessageBox.Show("No data to export.", "Info");
 			}
-			var bmp = DrawHistogram();
-			SaveFileDialog dialog = new SaveFileDialog();
-			if (dialog.ShowDialog() == DialogResult.OK) {
-				int width = Convert.ToInt32(bmp.Width);
-				int height = Convert.ToInt32(bmp.Height);
-				bmp.Save(dialog.FileName, ImageFormat.Jpeg);
-			}
 		}
 
 		private void TypeDigitModifierCallback() {
