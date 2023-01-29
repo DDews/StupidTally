@@ -16,6 +16,9 @@ namespace StupidTally
 			LoadSettings();
 			this._selectedShortcutIndex = 0;
 			ResetGlobalKeyboardBindings();
+			foreach (DataGridViewColumn column in shortcutGrid.Columns) {
+				column.SortMode = DataGridViewColumnSortMode.NotSortable;
+			}
 		}
 
 		private void label1_Click(object sender, EventArgs e) {
@@ -46,15 +49,23 @@ namespace StupidTally
 				}
 				catch (Exception ex) {
 					intVer = -1;
-					_tempKeys.RemoveAt(1);
 				}
 				if (!printedVer.Equals("0") && intVer > 0) {
 					MessageBox.Show("Only modifier keys (CTRL, ALT, SHIFT) and Number keys allowed.");
 					return;
 				}
 			}
+			var keyString = string.Join("+", _tempKeys);
+
+			foreach (KeyValuePair<string,Setting> pair in Settings.Data) {
+				var pairSetting = pair.Value;
+				if (pairSetting.Value.Equals(keyString)) {
+					MessageBox.Show($"This shortcut combination is already being used for: '{pair.Key}'!");
+					return;
+				}
+			}
 			
-			setting.Value = string.Join("+",_tempKeys);
+			setting.Value = keyString;
 			
 
 			// save to ini file
@@ -314,8 +325,9 @@ namespace StupidTally
 			if (_recording) {
 				_recording = false;
 				this.recordButton.ForeColor = DefaultForeColor;
-				SaveTempKeysToSelectedShortcut();
+				this.recordLabel.ForeColor = DefaultForeColor;
 				RebindHotkeysAfterRecording();
+				SaveTempKeysToSelectedShortcut();
 			} else {
 				if (shortcutGrid.SelectedCells.Count > 0) _selectedShortcutIndex = shortcutGrid.SelectedCells[0].RowIndex;
 				this.recordButton.ForeColor = Color.Crimson;

@@ -316,8 +316,8 @@ namespace StupidTally
 					this._recording = false;
 					this.recordLabel.ForeColor = DefaultForeColor;
 					this.recordButton.ForeColor = DefaultForeColor;
-					this.SaveTempKeysToSelectedShortcut();
 					RebindHotkeysAfterRecording();
+					this.SaveTempKeysToSelectedShortcut();
 					return;
 				}
 				if ((e.KeyData & ~ModifierKeys & ~Keys.Menu) == Keys.None) {
