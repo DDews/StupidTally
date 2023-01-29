@@ -1,4 +1,5 @@
 ﻿using Shortcut;
+using System.Collections;
 using System.ComponentModel;
 using System.Reflection;
 
@@ -19,6 +20,26 @@ namespace StupidTally
 			this.Value = value;
 		}
 
+	}
+	public class DataGridNumericComparer : IComparer {
+		public DataGridNumericComparer() {
+
+		}
+		public int Compare(Object x, Object y) {
+			DataGridViewRow a = (DataGridViewRow)x;
+			DataGridViewRow b = (DataGridViewRow)y;
+			var firstString = a.Cells[0].Value.ToString();
+			var secondString = b.Cells[0].Value.ToString();
+			int firstVal = 0;
+			int secondVal = 0;
+			try {
+				firstVal = int.Parse(firstString);
+				secondVal = int.Parse(secondString);
+			} catch (Exception ex) {
+
+			}
+			return firstVal.CompareTo(secondVal);
+		}
 	}
 	public class Settings 
 	{
@@ -98,6 +119,7 @@ namespace StupidTally
 			this.Damage = new System.Windows.Forms.DataGridViewTextBoxColumn();
 			this.Tally = new System.Windows.Forms.DataGridViewTextBoxColumn();
 			this.damageTallyBox = new System.Windows.Forms.GroupBox();
+			this.scottPlot = new ScottPlot.FormsPlot();
 			this.shortcutsBox = new System.Windows.Forms.GroupBox();
 			this.shortcutGrid = new System.Windows.Forms.DataGridView();
 			this.dataGridViewTextBoxColumn1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -106,6 +128,7 @@ namespace StupidTally
 			this.recordButton = new System.Windows.Forms.Button();
 			this.colorDialog1 = new System.Windows.Forms.ColorDialog();
 			this.groupBox1 = new System.Windows.Forms.GroupBox();
+			this.recentNumberLabel = new System.Windows.Forms.Label();
 			this.damageLabel = new System.Windows.Forms.Label();
 			((System.ComponentModel.ISupportInitialize)(this.dataGrid)).BeginInit();
 			this.damageTallyBox.SuspendLayout();
@@ -118,20 +141,22 @@ namespace StupidTally
 			// 
 			this.dataGrid.AllowUserToAddRows = false;
 			this.dataGrid.AllowUserToDeleteRows = false;
+			this.dataGrid.Anchor = System.Windows.Forms.AnchorStyles.Left;
 			this.dataGrid.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
 			this.dataGrid.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
 			this.dataGrid.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.Damage,
             this.Tally});
-			this.dataGrid.Dock = System.Windows.Forms.DockStyle.Top;
-			this.dataGrid.Enabled = false;
 			this.dataGrid.Location = new System.Drawing.Point(3, 19);
+			this.dataGrid.MultiSelect = false;
 			this.dataGrid.Name = "dataGrid";
 			this.dataGrid.RowHeadersVisible = false;
 			this.dataGrid.RowTemplate.Height = 25;
-			this.dataGrid.Size = new System.Drawing.Size(515, 398);
+			this.dataGrid.ShowCellErrors = false;
+			this.dataGrid.ShowCellToolTips = false;
+			this.dataGrid.ShowEditingIcon = false;
+			this.dataGrid.Size = new System.Drawing.Size(127, 398);
 			this.dataGrid.TabIndex = 1;
-			this.dataGrid.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGrid_CellContentClick);
 			// 
 			// Damage
 			// 
@@ -150,6 +175,7 @@ namespace StupidTally
 			// 
 			// damageTallyBox
 			// 
+			this.damageTallyBox.Controls.Add(this.scottPlot);
 			this.damageTallyBox.Controls.Add(this.dataGrid);
 			this.damageTallyBox.Location = new System.Drawing.Point(267, 12);
 			this.damageTallyBox.Name = "damageTallyBox";
@@ -157,6 +183,17 @@ namespace StupidTally
 			this.damageTallyBox.TabIndex = 2;
 			this.damageTallyBox.TabStop = false;
 			this.damageTallyBox.Text = "Damage Tally";
+			this.damageTallyBox.Enter += new System.EventHandler(this.damageTallyBox_Enter);
+			// 
+			// scottPlot
+			// 
+			this.scottPlot.Dock = System.Windows.Forms.DockStyle.Right;
+			this.scottPlot.ImeMode = System.Windows.Forms.ImeMode.On;
+			this.scottPlot.Location = new System.Drawing.Point(141, 19);
+			this.scottPlot.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+			this.scottPlot.Name = "scottPlot";
+			this.scottPlot.Size = new System.Drawing.Size(377, 404);
+			this.scottPlot.TabIndex = 2;
 			// 
 			// shortcutsBox
 			// 
@@ -165,7 +202,7 @@ namespace StupidTally
 			this.shortcutsBox.Controls.Add(this.recordButton);
 			this.shortcutsBox.Location = new System.Drawing.Point(12, 156);
 			this.shortcutsBox.Name = "shortcutsBox";
-			this.shortcutsBox.Size = new System.Drawing.Size(249, 276);
+			this.shortcutsBox.Size = new System.Drawing.Size(249, 282);
 			this.shortcutsBox.TabIndex = 3;
 			this.shortcutsBox.TabStop = false;
 			this.shortcutsBox.Text = "Global Shortcuts";
@@ -222,6 +259,7 @@ namespace StupidTally
 			// 
 			// groupBox1
 			// 
+			this.groupBox1.Controls.Add(this.recentNumberLabel);
 			this.groupBox1.Controls.Add(this.damageLabel);
 			this.groupBox1.Location = new System.Drawing.Point(12, 12);
 			this.groupBox1.Name = "groupBox1";
@@ -229,6 +267,17 @@ namespace StupidTally
 			this.groupBox1.TabIndex = 4;
 			this.groupBox1.TabStop = false;
 			this.groupBox1.Text = "Damage Number";
+			// 
+			// recentNumberLabel
+			// 
+			this.recentNumberLabel.AutoSize = true;
+			this.recentNumberLabel.Dock = System.Windows.Forms.DockStyle.Bottom;
+			this.recentNumberLabel.Location = new System.Drawing.Point(3, 104);
+			this.recentNumberLabel.Name = "recentNumberLabel";
+			this.recentNumberLabel.Size = new System.Drawing.Size(46, 15);
+			this.recentNumberLabel.TabIndex = 5;
+			this.recentNumberLabel.Text = "Recent:";
+			this.recentNumberLabel.Click += new System.EventHandler(this.label1_Click_2);
 			// 
 			// damageLabel
 			// 
@@ -257,6 +306,7 @@ namespace StupidTally
 			this.shortcutsBox.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)(this.shortcutGrid)).EndInit();
 			this.groupBox1.ResumeLayout(false);
+			this.groupBox1.PerformLayout();
 			this.ResumeLayout(false);
 
 		}
@@ -264,6 +314,8 @@ namespace StupidTally
 		#endregion
 
 		#region Helper Methods
+
+		public Func<double, string> customFormatter = y => $"{Math.Round(y / _totalTallied * 100)}%";
 		private void LoadSettings() {
 			// Creates or loads an INI file in the same directory as your executable
 			// named EXE.ini (where EXE is the name of your executable)
@@ -299,13 +351,93 @@ namespace StupidTally
 			}
 			this.KeyPress += RecordButton_KeyPressed;
 			this.KeyDown += RecordButton_KeyDown;
+			this.dataGrid.KeyUp += DataGrid_KeyUp;
+
 			this.ClearDamage();
 			this.Settings = readSettings;
 			SortGrid();
 		}
+		private void DataGrid_KeyUp(object sender, KeyEventArgs e) {
+			if (this._recording) return;
+			if (e.Modifiers != Keys.None) return;
+			if (e.KeyCode == Keys.Delete) {
+				if (this.dataGrid.SelectedCells.Count > 0) {
+					var rowIndex = this.dataGrid.SelectedCells[0].RowIndex;
+					var damageNumber = this.dataGrid.Rows[rowIndex].Cells[0].Value;
+					var confirmResult = MessageBox.Show($"Are you sure to delete tallies for {damageNumber}?",
+									 "Confirm Deletion!",
+									 MessageBoxButtons.YesNo);
+					if (confirmResult == DialogResult.Yes) {
+						_totalTallied--;
+						this.Text = $"Stupid Tally - Total Tallied: {_totalTallied}";
+						this.dataGrid.Rows.RemoveAt(rowIndex);
+						DrawHistogram();
+					}
+				}
+			}
+		}
 
 		private void SortGrid() {
-			dataGrid.Sort(dataGrid.Columns[0], ListSortDirection.Ascending);
+			foreach (DataGridViewColumn column in dataGrid.Columns) {
+				column.SortMode = DataGridViewColumnSortMode.NotSortable;
+			}
+			dataGrid.Sort(new DataGridNumericComparer());
+			DrawHistogram();
+		}
+
+		private Bitmap DrawHistogram() {
+			if (dataGrid.Rows.Count > 1) {
+				List<double> values = new List<double>();
+				List<double> positions = new List<double>();
+				int maxY = 0;
+				int maxX = 0;
+				int minX = -1;
+				foreach (DataGridViewRow row in dataGrid.Rows) {
+					int damageNumber = 0;
+					int tally = 0;
+					try {
+						damageNumber = int.Parse(row.Cells[0].Value.ToString());
+						if (damageNumber > maxX) maxX = damageNumber;
+						if (minX == -1 || damageNumber < minX) minX = damageNumber;
+						tally = int.Parse(row.Cells[1].Value.ToString());
+						if (tally > maxY) maxY = tally;
+
+					} catch (Exception ex) {
+
+					}
+					values.Add(tally);
+					positions.Add(damageNumber);
+				}
+
+				var plt = scottPlot.Plot;
+				// generate sample heights are based on https://ourworldindata.org/human-height
+
+				// create a histogram
+				//(double[] counts, double[] binEdges) = ScottPlot.Statistics.Common.Histogram(histogramData.Values.ToArray(), min: histogramData.MinBy(kvp => kvp.Key).Key - 2, max: histogramData.MaxBy(kvp => kvp.Key).Key + 2, binSize: 1);
+				//double[] leftEdges = binEdges.Take(binEdges.Length - 1).ToArray();
+				// display the histogram counts as a bar plot
+				var bar = plt.AddBar(values.ToArray(), positions.ToArray());
+				bar.ShowValuesAboveBars = true;
+
+				var total = (double)_totalTallied;
+				bar.ValueFormatter = customFormatter;
+				bar.BarWidth = 1;
+
+				// customize the plot style
+				plt.YAxis.Label("Tally");
+				plt.XAxis.Label("Damage");
+				plt.SetAxisLimits(yMin: 0,yMax: maxY + 1,xMin: minX - 1,xMax: maxX + 1);
+				scottPlot.Refresh();
+			}
+			return null;
+		}
+
+		private void dataGridView1_SortCompare(object sender, DataGridViewSortCompareEventArgs e) {
+			//Suppose your interested column has index 1
+			if (e.Column.Index == 0) {
+				e.SortResult = int.Parse(e.CellValue1.ToString()).CompareTo(int.Parse(e.CellValue2.ToString()));
+				e.Handled = true;//pass by the default sorting
+			}
 		}
 
 		private void RecordButton_KeyDown(object sender, KeyEventArgs e) {
@@ -396,5 +528,7 @@ namespace StupidTally
 		private DataGridViewTextBoxColumn Tally;
 		private int _selectedShortcutIndex;
 		private bool _recording;
+		private Label recentNumberLabel;
+		private ScottPlot.FormsPlot scottPlot;
 	}
 }

@@ -1,5 +1,6 @@
 using Shortcut;
 using System.ComponentModel;
+using System.Drawing.Imaging;
 using System.Text;
 
 namespace StupidTally
@@ -10,6 +11,7 @@ namespace StupidTally
 		private List<Keys> _tempKeys = new List<Keys>();
 		private List<Hotkey> _hotkeys = new List<Hotkey>();
 		private string _tempDigits;
+		private static int _totalTallied = 0;
 
 		public Form1() {
 			InitializeComponent();
@@ -33,9 +35,6 @@ namespace StupidTally
 
 		}
 
-		private void dataGrid_CellContentClick(object sender, DataGridViewCellEventArgs e) {
-
-		}
 		private void SaveTempKeysToSelectedShortcut() {
 			var keyName = this.Settings.KeyNamesSorted[_selectedShortcutIndex];
 			
@@ -253,7 +252,11 @@ namespace StupidTally
 
 		private void AcceptNumberCallback() {
 			if (_recording) return;
+			if (string.IsNullOrWhiteSpace(_tempDigits)) return;
 			//this.dataGrid.Rows.Add(new string[] { _tempDigits, "1" });
+			this.recentNumberLabel.Text = $"Recent: {_tempDigits}";
+			_totalTallied++;
+			this.Text = $"Stupid Tally - Total Tallied: {_totalTallied}";
 			foreach (DataGridViewRow row in dataGrid.Rows) {
 				if (row.Cells.Count > 0 && row.Cells[0].Value != null) {
 					if (row.Cells[0].Value.ToString().Equals(_tempDigits)) {
@@ -267,12 +270,14 @@ namespace StupidTally
 						intValue++;
 						row.Cells[1].Value = $"{intValue}";
 						ClearDigits();
+						DrawHistogram();
 						return;
 					}
 				}
 			}
 			dataGrid.Rows.Add(new string[] { _tempDigits, "1"});
 			ClearDigits();
+			SortGrid();
 		}
 		private void ExportToFileCallback() {
 			if (_recording) return;
@@ -315,6 +320,13 @@ namespace StupidTally
 			} else {
 				MessageBox.Show("No data to export.", "Info");
 			}
+			var bmp = DrawHistogram();
+			SaveFileDialog dialog = new SaveFileDialog();
+			if (dialog.ShowDialog() == DialogResult.OK) {
+				int width = Convert.ToInt32(bmp.Width);
+				int height = Convert.ToInt32(bmp.Height);
+				bmp.Save(dialog.FileName, ImageFormat.Jpeg);
+			}
 		}
 
 		private void TypeDigitModifierCallback() {
@@ -356,6 +368,14 @@ namespace StupidTally
 				this._tempKeys.Clear();
 				this.recordButton.ForeColor = Color.Crimson;
 			}
+		}
+
+		private void label1_Click_2(object sender, EventArgs e) {
+
+		}
+
+		private void damageTallyBox_Enter(object sender, EventArgs e) {
+
 		}
 	}
 }
