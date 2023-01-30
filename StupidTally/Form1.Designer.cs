@@ -46,7 +46,8 @@ namespace StupidTally
 	
 		public const string KeyBindings = "KeyBindings";
 		public const string TypeDigitModifier = "TypeDigitModifier";
-		public const string ExportToFile = "ExportToFile";
+		public const string ExportToFile = "ExportToFiles";
+		public const string LoadCSV = "LoadCSV";
 		public const string AcceptNumber = "AcceptNumber";
 		public const string RejectNumber = "RejectNumber";
 		public string[] KeyNamesSorted = new string[] { TypeDigitModifier, ExportToFile, AcceptNumber, RejectNumber };
@@ -119,6 +120,7 @@ namespace StupidTally
 			this.Damage = new System.Windows.Forms.DataGridViewTextBoxColumn();
 			this.Tally = new System.Windows.Forms.DataGridViewTextBoxColumn();
 			this.damageTallyBox = new System.Windows.Forms.GroupBox();
+			this.totalDiceLabel = new System.Windows.Forms.Label();
 			this.scottPlot = new ScottPlot.FormsPlot();
 			this.shortcutsBox = new System.Windows.Forms.GroupBox();
 			this.shortcutGrid = new System.Windows.Forms.DataGridView();
@@ -155,7 +157,7 @@ namespace StupidTally
 			this.dataGrid.ShowCellErrors = false;
 			this.dataGrid.ShowCellToolTips = false;
 			this.dataGrid.ShowEditingIcon = false;
-			this.dataGrid.Size = new System.Drawing.Size(127, 398);
+			this.dataGrid.Size = new System.Drawing.Size(127, 366);
 			this.dataGrid.TabIndex = 1;
 			// 
 			// Damage
@@ -175,6 +177,7 @@ namespace StupidTally
 			// 
 			// damageTallyBox
 			// 
+			this.damageTallyBox.Controls.Add(this.totalDiceLabel);
 			this.damageTallyBox.Controls.Add(this.scottPlot);
 			this.damageTallyBox.Controls.Add(this.dataGrid);
 			this.damageTallyBox.Location = new System.Drawing.Point(267, 12);
@@ -182,8 +185,18 @@ namespace StupidTally
 			this.damageTallyBox.Size = new System.Drawing.Size(521, 426);
 			this.damageTallyBox.TabIndex = 2;
 			this.damageTallyBox.TabStop = false;
-			this.damageTallyBox.Text = "Damage Tally";
+			this.damageTallyBox.Text = "Data";
 			this.damageTallyBox.Enter += new System.EventHandler(this.damageTallyBox_Enter);
+			// 
+			// totalDiceLabel
+			// 
+			this.totalDiceLabel.AutoSize = true;
+			this.totalDiceLabel.Location = new System.Drawing.Point(6, 395);
+			this.totalDiceLabel.Name = "totalDiceLabel";
+			this.totalDiceLabel.Size = new System.Drawing.Size(44, 15);
+			this.totalDiceLabel.TabIndex = 3;
+			this.totalDiceLabel.Text = "Total: 0";
+			this.totalDiceLabel.Click += new System.EventHandler(this.totalDiceLabel_Click);
 			// 
 			// scottPlot
 			// 
@@ -224,7 +237,7 @@ namespace StupidTally
 			this.shortcutGrid.ReadOnly = true;
 			this.shortcutGrid.RowHeadersVisible = false;
 			this.shortcutGrid.RowTemplate.Height = 25;
-			this.shortcutGrid.Size = new System.Drawing.Size(243, 207);
+			this.shortcutGrid.Size = new System.Drawing.Size(243, 222);
 			this.shortcutGrid.TabIndex = 3;
 			this.shortcutGrid.CellContentDoubleClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.shortcutGrid_CellContentClick);
 			// 
@@ -263,7 +276,7 @@ namespace StupidTally
 			this.groupBox1.Controls.Add(this.damageLabel);
 			this.groupBox1.Location = new System.Drawing.Point(12, 12);
 			this.groupBox1.Name = "groupBox1";
-			this.groupBox1.Size = new System.Drawing.Size(249, 122);
+			this.groupBox1.Size = new System.Drawing.Size(249, 138);
 			this.groupBox1.TabIndex = 4;
 			this.groupBox1.TabStop = false;
 			this.groupBox1.Text = "Damage Number";
@@ -272,7 +285,7 @@ namespace StupidTally
 			// 
 			this.recentNumberLabel.AutoSize = true;
 			this.recentNumberLabel.Dock = System.Windows.Forms.DockStyle.Bottom;
-			this.recentNumberLabel.Location = new System.Drawing.Point(3, 104);
+			this.recentNumberLabel.Location = new System.Drawing.Point(3, 120);
 			this.recentNumberLabel.Name = "recentNumberLabel";
 			this.recentNumberLabel.Size = new System.Drawing.Size(46, 15);
 			this.recentNumberLabel.TabIndex = 5;
@@ -282,13 +295,14 @@ namespace StupidTally
 			// damageLabel
 			// 
 			this.damageLabel.Font = new System.Drawing.Font("Segoe UI", 28F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-			this.damageLabel.ForeColor = System.Drawing.Color.Crimson;
+			this.damageLabel.ForeColor = System.Drawing.Color.DarkGray;
 			this.damageLabel.Location = new System.Drawing.Point(6, 19);
 			this.damageLabel.Name = "damageLabel";
 			this.damageLabel.Size = new System.Drawing.Size(243, 100);
 			this.damageLabel.TabIndex = 4;
 			this.damageLabel.Text = "308";
 			this.damageLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+			this.damageLabel.Click += new System.EventHandler(this.damageLabel_Click);
 			// 
 			// Form1
 			// 
@@ -303,6 +317,7 @@ namespace StupidTally
 			this.Text = "Stupid Tally";
 			((System.ComponentModel.ISupportInitialize)(this.dataGrid)).EndInit();
 			this.damageTallyBox.ResumeLayout(false);
+			this.damageTallyBox.PerformLayout();
 			this.shortcutsBox.ResumeLayout(false);
 			((System.ComponentModel.ISupportInitialize)(this.shortcutGrid)).EndInit();
 			this.groupBox1.ResumeLayout(false);
@@ -327,14 +342,19 @@ namespace StupidTally
 			// #1) Type Digit Modifier
 			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.TypeDigitModifier, new Keys[] { Keys.Alt | Keys.Shift } /* ALT+SHIFT (+digit) */);
 
-			// #2) Export to File
+			// #2) Accept inputted number
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.AcceptNumber, new Keys[] { Keys.Alt | Keys.Shift, Keys.End } /* Alt+Shift+End */ );
+
+			// #3)  Reject inputted number
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.RejectNumber, new Keys[] { Keys.Alt | Keys.Shift, Keys.Delete } /* Alt+Shift+Delete */);
+
+			// #4) Export to Files
 			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.ExportToFile, new Keys[] { Keys.Control | Keys.Shift, Keys.S } /* CTRL+SHIFT+S*/);
 
-			// #3) Accept inputted number
-			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.AcceptNumber, new Keys[] {Keys.Alt | Keys.Shift, Keys.End } /* Alt+Shift+End */ );
+			// #5) Load from CSV File
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.LoadCSV, new Keys[] { Keys.Control | Keys.Shift, Keys.O } /* CTRL+SHIFT+O*/);
 
-			// #4)  Reject inputted number
-			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.RejectNumber, new Keys[] {Keys.Alt | Keys.Shift, Keys.Delete } /* Alt+Shift+Delete */);
+
 
 			// Setup Shortcut Grid in form
 
@@ -353,7 +373,7 @@ namespace StupidTally
 			this.KeyDown += RecordButton_KeyDown;
 			this.dataGrid.KeyUp += DataGrid_KeyUp;
 
-			this.ClearDamage();
+			this.ClearDigits();
 			this.Settings = readSettings;
 			SortGrid();
 		}
@@ -382,6 +402,7 @@ namespace StupidTally
 				column.SortMode = DataGridViewColumnSortMode.NotSortable;
 			}
 			dataGrid.Sort(new DataGridNumericComparer());
+			this.totalDiceLabel.Text = $"Total: {this.dataGrid.Rows.Count}";
 			DrawHistogram();
 		}
 
@@ -409,7 +430,7 @@ namespace StupidTally
 					positions.Add(damageNumber);
 				}
 
-				var plt = scottPlot.Plot;
+				var plt = scottPlot.plt;
 				// generate sample heights are based on https://ourworldindata.org/human-height
 
 				// create a histogram
@@ -426,7 +447,7 @@ namespace StupidTally
 				// customize the plot style
 				plt.YAxis.Label("Tally");
 				plt.XAxis.Label("Damage");
-				plt.SetAxisLimits(yMin: 0,yMax: maxY + 1,xMin: minX - 1,xMax: maxX + 1);
+				plt.SetAxisLimits(yMin: 0,yMax: maxY + 5,xMin: minX - 1,xMax: maxX + 1);
 				scottPlot.Refresh();
 			}
 		}
@@ -506,9 +527,6 @@ namespace StupidTally
 			this.damageLabel.Text = damageNumber;
 			this.damageLabel.ForeColor = Color.DarkGreen;
 		}
-		private void ClearDamage() {
-			UnmatchedDamage("000");
-		}
 		#endregion
 
 		private DataGridView dataGrid;
@@ -529,5 +547,6 @@ namespace StupidTally
 		private bool _recording;
 		private Label recentNumberLabel;
 		private ScottPlot.FormsPlot scottPlot;
+		private Label totalDiceLabel;
 	}
 }

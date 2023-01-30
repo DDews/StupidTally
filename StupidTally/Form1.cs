@@ -127,6 +127,9 @@ namespace StupidTally
 						case Settings.ExportToFile:
 							if (!_hotkeyBinder.IsHotkeyAlreadyBound(hotkey)) _hotkeyBinder.Bind(hotkey).To(ExportToFileCallback);
 							break;
+						case Settings.LoadCSV:
+							if (!_hotkeyBinder.IsHotkeyAlreadyBound(hotkey)) _hotkeyBinder.Bind(hotkey).To(LoadFromCSVFileCallback);
+							break;
 						case Settings.AcceptNumber:
 							if (!_hotkeyBinder.IsHotkeyAlreadyBound(hotkey)) _hotkeyBinder.Bind(hotkey).To(AcceptNumberCallback);
 							break;
@@ -143,7 +146,7 @@ namespace StupidTally
 				}
 			}
 		}
-	
+
 		private void CreateAndRememberHotkey(Action action, Modifiers modifiers, Keys keys = Keys.None) {
 			var hotkey = new Hotkey(modifiers, keys);
 			_hotkeys.Add(hotkey);
@@ -175,11 +178,13 @@ namespace StupidTally
 
 		private void ClearDigits() {
 			_tempDigits = "";
-			this.damageLabel.Text = _tempDigits;
+			this.damageLabel.Text = "000";
+			this.damageLabel.ForeColor = Color.DarkGray;
 			dataGrid.Sort(dataGrid.Columns[0], ListSortDirection.Ascending);
 			dataGrid.ShowCellToolTips = false;
 		}
 		Color ColorizedDigit() {
+			if (_tempDigits.Length == 0) return Color.DarkGray;
 			foreach (DataGridViewRow row in dataGrid.Rows) {
 				if (row.Cells.Count > 0 && row.Cells[0].Value != null) {
 					if (row.Cells[0].Value.ToString().Equals(_tempDigits)) {
@@ -270,7 +275,7 @@ namespace StupidTally
 						intValue++;
 						row.Cells[1].Value = $"{intValue}";
 						ClearDigits();
-						DrawHistogram();
+						SortGrid();
 						return;
 					}
 				}
@@ -317,11 +322,99 @@ namespace StupidTally
 						}
 					}
 				}
+				sfd = new SaveFileDialog();
+				sfd.Filter = "PNG (*.png)|*.png";
+				sfd.FileName = "Output.png";
+				fileError = false;
+				if (sfd.ShowDialog() == DialogResult.OK) {
+					if (File.Exists(sfd.FileName)) {
+						try {
+							File.Delete(sfd.FileName);
+						} catch (IOException ex) {
+							fileError = true;
+							MessageBox.Show("It wasn't possible to write the data to the disk." + ex.Message);
+						}
+					}
+					if (!fileError) {
+						try {
+							Bitmap bmp = new Bitmap(this.scottPlot.Width, this.scottPlot.Height);
+
+							this.scottPlot.DrawToBitmap(bmp, new Rectangle(0, 0, this.scottPlot.Width, this.scottPlot.Height));
+
+							bmp.Save(sfd.FileName, System.Drawing.Imaging.ImageFormat.Bmp);
+						} catch (Exception ex) {
+							MessageBox.Show("Error :" + ex.Message);
+						}
+					}
+				}
 			} else {
 				MessageBox.Show("No data to export.", "Info");
 			}
 		}
+		private void LoadFromCSVFileCallback() {
+			if (_recording) return;
+			if (dataGrid.Rows.Count > 0) {
+				var confirmResult = MessageBox.Show($"You will lose your current progress. Are you sure you want to load data from a CSV file?",
+									 "Confirm Starting Over?",
+									 MessageBoxButtons.YesNo);
+				if (confirmResult == DialogResult.No) {
+					return;
+				}
+			}
+			// Browse and Select CSV file to open
+			try {
+				string filename = "";
+				OpenFileDialog dialog = new OpenFileDialog();
+				dialog.Title = "Open CSV File";
+				dialog.Filter = "CSV Files (*.csv)|*.csv";
+				if (dialog.ShowDialog() == DialogResult.OK) {
+					filename = dialog.FileName;
+				} else {
+					return;
+				}
+				// read from CSV to load values
+				using (var reader = new StreamReader(filename)) {
+					// read first line for headers
+					var line = reader.ReadLine();
+					var values = line.Split(',');
+					string firstColumn = values[0];
+					string secondColumn = values[1];
+					if ((values.Length > 2 && !string.IsNullOrEmpty(values[2])) || (!firstColumn.ToLower().Equals("damage") || !secondColumn.ToLower().Equals("tally"))) {
+						// Invalid headers -- Invalid CSV
+						MessageBox.Show($"Error: This CSV file is invalid. Expecting two columns named: 'Damage', 'Tally'.\nEncountered line: {line}");
+						return;
+					}
 
+					// input file looks good. clear data to start fresh
+					this.recentNumberLabel.Text = "Recent:";
+					this.dataGrid.Rows.Clear();
+					this.totalDiceLabel.Text = "Total: 0";
+					ClearDigits();
+					scottPlot.Reset();
+					int newTotal = 0;
+					while (!reader.EndOfStream) {
+						line = reader.ReadLine();
+						values = line.Split(',');
+						string damage = values[0];
+						string tally = values[1];
+						try {
+							int damageInt = int.Parse(damage);
+							int tallyInt = int.Parse(tally);
+							newTotal += tallyInt;
+						} catch(Exception ex) {
+							MessageBox.Show($"Error loading CSV file: invalid data values from line '{line}'. Was expecting integers.");
+							return;
+						}
+						dataGrid.Rows.Add(new string[] { values[0], values[1] });
+					}
+					_totalTallied = newTotal;
+					this.Text = $"Stupid Tally - Total Tallied: {_totalTallied}";
+					SortGrid();
+				}
+			} catch (Exception) {
+				throw;
+			}
+		}
 		private void TypeDigitModifierCallback() {
 			
 		}
@@ -368,6 +461,14 @@ namespace StupidTally
 		}
 
 		private void damageTallyBox_Enter(object sender, EventArgs e) {
+
+		}
+
+		private void totalDiceLabel_Click(object sender, EventArgs e) {
+
+		}
+
+		private void damageLabel_Click(object sender, EventArgs e) {
 
 		}
 	}
