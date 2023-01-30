@@ -5,7 +5,7 @@ It is most helpful when trying to determine "rolled dice values" for damage form
 
 _Note: When trying to record recurring damage numbers for gathering statistics, run this program as administrator._
 
-![Alt text](/StupidTally-Labelled-window.png?raw=true "Window, Labelled")
+![Alt text](./StupidTally-Labelled-window.png?raw=true "Window, Labelled")
 
 _Above: window, labelled. Explanations below._
 
