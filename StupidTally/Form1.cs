@@ -424,6 +424,7 @@ namespace StupidTally
 				_recording = false;
 				this.recordButton.ForeColor = DefaultForeColor;
 				this.recordLabel.ForeColor = DefaultForeColor;
+				if (_tempKeys.Count == 0) return;
 				RebindHotkeysAfterRecording();
 				SaveTempKeysToSelectedShortcut();
 			} else {

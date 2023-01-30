@@ -46,11 +46,11 @@ namespace StupidTally
 	
 		public const string KeyBindings = "KeyBindings";
 		public const string TypeDigitModifier = "TypeDigitModifier";
-		public const string ExportToFile = "ExportToFiles";
+		public const string ExportToFile = "ExportToFile";
 		public const string LoadCSV = "LoadCSV";
 		public const string AcceptNumber = "AcceptNumber";
 		public const string RejectNumber = "RejectNumber";
-		public string[] KeyNamesSorted = new string[] { TypeDigitModifier, ExportToFile, AcceptNumber, RejectNumber };
+		public string[] KeyNamesSorted = new string[] { TypeDigitModifier, AcceptNumber, RejectNumber, ExportToFile, LoadCSV };
 		public Dictionary<string,Setting> Data;
 		public Settings() {
 			this.Data = new Dictionary<string,Setting>();
@@ -459,15 +459,15 @@ namespace StupidTally
 				e.Handled = true;//pass by the default sorting
 			}
 		}
-
 		private void RecordButton_KeyDown(object sender, KeyEventArgs e) {
 			if (!this._recording) return;
 			e.Handled = true;
-			if (e.KeyValue >= 0) {
-				if (e.KeyData == Keys.Escape || e.KeyData == Keys.Enter) {
+			if (e.KeyValue >= 0 || e.Modifiers >= 0) {
+				if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Escape) {
 					this._recording = false;
 					this.recordLabel.ForeColor = DefaultForeColor;
 					this.recordButton.ForeColor = DefaultForeColor;
+					if (_tempKeys.Count == 0) return;
 					RebindHotkeysAfterRecording();
 					this.SaveTempKeysToSelectedShortcut();
 					return;
