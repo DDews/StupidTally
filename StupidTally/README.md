@@ -89,8 +89,31 @@ This helps with mapping the distribution to a spread map of known dice rolls.
 The **(Cb)** `Total` number can help determine how many dice there may be. The distribution bar graph can help determine if how many dice may have been used to create the spread of damage numbers on the game.
 
 
+# Resources
+This project uses two external dependencies:
+* ScottPlot nuget package
+
+	For plotting the bar graph.
+* Shortcut nuget package
+
+	For handling global keybinds on Windows.
+
 # Troubleshooting
 Since this program is unsigned and written by a fk idot, yours truly,
+
 I suspect you may need to add this program's executable to Windows' list of ignored processes in security and virus protection.
 
-If you encounter errors or problems, raise a ticket on the source repository: https://github.com/DDews/StupidTally.git
+Since it does use global keybindings for you to easily type and record damage numbers, it could be mistaken for a (very shitty) keylogger that only logs digits.
+
+The source code for this project can be found on github, though I made it private.
+
+Sourcecode: https://github.com/DDews/StupidTally
+
+If you don't have access, then someone must have given you this as a ZIP file or something?
+
+So you'd be using it at your own risk.
+
+
+
+If you encounter errors or problems, raise a ticket on the source repository: https://github.com/DDews/StupidTally
+
