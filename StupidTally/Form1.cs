@@ -21,6 +21,8 @@ namespace StupidTally
 			foreach (DataGridViewColumn column in shortcutGrid.Columns) {
 				column.SortMode = DataGridViewColumnSortMode.NotSortable;
 			}
+			this.scottPlot.Plot.Style(figureBackground: DefaultBackColor);
+			this.scottPlot.Refresh();
 		}
 
 		private void label1_Click(object sender, EventArgs e) {
@@ -58,6 +60,9 @@ namespace StupidTally
 
 			foreach (KeyValuePair<string,Setting> pair in Settings.Data) {
 				var pairSetting = pair.Value;
+				if (pair.Key == keyName && pair.Value.Equals(keyString)) {
+					return;
+				}
 				if (pairSetting.Value.Equals(keyString)) {
 					MessageBox.Show($"This shortcut combination is already being used for: '{pair.Key}'!");
 					return;
@@ -471,6 +476,10 @@ namespace StupidTally
 
 		private void damageLabel_Click(object sender, EventArgs e) {
 
+		}
+
+		private void percentageCheckbox_CheckedChanged(object sender, EventArgs e) {
+			this.DrawHistogram();
 		}
 	}
 }

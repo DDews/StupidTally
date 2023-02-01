@@ -120,6 +120,7 @@ namespace StupidTally
 			this.Damage = new System.Windows.Forms.DataGridViewTextBoxColumn();
 			this.Tally = new System.Windows.Forms.DataGridViewTextBoxColumn();
 			this.damageTallyBox = new System.Windows.Forms.GroupBox();
+			this.percentageCheckbox = new System.Windows.Forms.CheckBox();
 			this.totalDiceLabel = new System.Windows.Forms.Label();
 			this.scottPlot = new ScottPlot.FormsPlot();
 			this.shortcutsBox = new System.Windows.Forms.GroupBox();
@@ -177,6 +178,7 @@ namespace StupidTally
 			// 
 			// damageTallyBox
 			// 
+			this.damageTallyBox.Controls.Add(this.percentageCheckbox);
 			this.damageTallyBox.Controls.Add(this.totalDiceLabel);
 			this.damageTallyBox.Controls.Add(this.scottPlot);
 			this.damageTallyBox.Controls.Add(this.dataGrid);
@@ -187,6 +189,19 @@ namespace StupidTally
 			this.damageTallyBox.TabStop = false;
 			this.damageTallyBox.Text = "Data";
 			this.damageTallyBox.Enter += new System.EventHandler(this.damageTallyBox_Enter);
+			// 
+			// percentageCheckbox
+			// 
+			this.percentageCheckbox.AutoSize = true;
+			this.percentageCheckbox.Checked = true;
+			this.percentageCheckbox.CheckState = System.Windows.Forms.CheckState.Checked;
+			this.percentageCheckbox.Location = new System.Drawing.Point(199, 19);
+			this.percentageCheckbox.Name = "percentageCheckbox";
+			this.percentageCheckbox.Size = new System.Drawing.Size(122, 19);
+			this.percentageCheckbox.TabIndex = 4;
+			this.percentageCheckbox.Text = "Show Percentages";
+			this.percentageCheckbox.UseVisualStyleBackColor = true;
+			this.percentageCheckbox.CheckedChanged += new System.EventHandler(this.percentageCheckbox_CheckedChanged);
 			// 
 			// totalDiceLabel
 			// 
@@ -200,6 +215,7 @@ namespace StupidTally
 			// 
 			// scottPlot
 			// 
+			this.scottPlot.BackColor = System.Drawing.SystemColors.ControlLight;
 			this.scottPlot.Dock = System.Windows.Forms.DockStyle.Right;
 			this.scottPlot.ImeMode = System.Windows.Forms.ImeMode.On;
 			this.scottPlot.Location = new System.Drawing.Point(141, 19);
@@ -298,7 +314,7 @@ namespace StupidTally
 			this.damageLabel.ForeColor = System.Drawing.Color.DarkGray;
 			this.damageLabel.Location = new System.Drawing.Point(6, 19);
 			this.damageLabel.Name = "damageLabel";
-			this.damageLabel.Size = new System.Drawing.Size(243, 100);
+			this.damageLabel.Size = new System.Drawing.Size(237, 100);
 			this.damageLabel.TabIndex = 4;
 			this.damageLabel.Text = "308";
 			this.damageLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -336,7 +352,6 @@ namespace StupidTally
 			// named EXE.ini (where EXE is the name of your executable)
 			this.IniFile = new IniFile(Application.StartupPath + Assembly.GetExecutingAssembly().GetName().Name + ".ini");
 			var readSettings = new Settings();
-
 			// KeyBindings section of settings ini
 
 			// #1) Type Digit Modifier
@@ -369,7 +384,9 @@ namespace StupidTally
 				}
 				this.IniFile.Write(setting.KeyName,setting.Value, setting.SectionName);
 			}
+			this.shortcutGrid.KeyDown += shortcutGrid_KeyDown;
 			this.KeyPress += RecordButton_KeyPressed;
+			this.KeyUp += RecordButton_KeyUp;
 			this.KeyDown += RecordButton_KeyDown;
 			this.dataGrid.KeyUp += DataGrid_KeyUp;
 
@@ -377,6 +394,32 @@ namespace StupidTally
 			this.Settings = readSettings;
 			SortGrid();
 		}
+
+		protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {
+			if (keyData.HasFlag(Keys.Alt) && (Keys.Alt | Keys.Enter) == keyData) {
+				if (this._recording) {
+					this.recordLabel.ForeColor = Color.Crimson; 
+					if (!_tempKeys.Contains(Keys.Enter)) {
+
+						_tempKeys = new List<Keys>() { ModifierKeys, Keys.Enter};
+						this.recordLabel.Text = KeysToFriendlyString(_tempKeys.ToArray());
+					}
+				}
+				return true;
+			}
+			return base.ProcessCmdKey(ref msg, keyData);
+		}
+		private void shortcutGrid_KeyDown(object sender, KeyEventArgs e) {
+			if (e.KeyCode > 0 && ((e.KeyData & ~ModifierKeys & ~Keys.Menu) != Keys.None)) {
+				e.Handled = true;
+			}
+		}
+
+		private void RecordButton_KeyUp(object sender, KeyEventArgs e) {
+			if (!this._recording) return;
+			e.Handled = true;
+		}
+
 		private void DataGrid_KeyUp(object sender, KeyEventArgs e) {
 			if (this._recording) return;
 			if (e.Modifiers != Keys.None) return;
@@ -391,7 +434,6 @@ namespace StupidTally
 						_totalTallied--;
 						this.Text = $"Stupid Tally - Total Tallied: {_totalTallied}";
 						this.dataGrid.Rows.RemoveAt(rowIndex);
-						DrawHistogram();
 					}
 				}
 			}
@@ -407,6 +449,9 @@ namespace StupidTally
 		}
 
 		private void DrawHistogram() {
+			if (_totalTallied <= 1) return;
+			this.scottPlot.Plot.Style(figureBackground: DefaultBackColor);
+			scottPlot.Reset();
 			if (dataGrid.Rows.Count > 1) {
 				List<double> values = new List<double>();
 				List<double> positions = new List<double>();
@@ -430,7 +475,9 @@ namespace StupidTally
 					positions.Add(damageNumber);
 				}
 
-				var plt = scottPlot.plt;
+				var plt = scottPlot.Plot;
+				plt.Style(figureBackground: DefaultBackColor);
+
 				// generate sample heights are based on https://ourworldindata.org/human-height
 
 				// create a histogram
@@ -438,7 +485,7 @@ namespace StupidTally
 				//double[] leftEdges = binEdges.Take(binEdges.Length - 1).ToArray();
 				// display the histogram counts as a bar plot
 				var bar = plt.AddBar(values.ToArray(), positions.ToArray());
-				bar.ShowValuesAboveBars = true;
+				bar.ShowValuesAboveBars = this.percentageCheckbox.Checked;
 
 				var total = (double)_totalTallied;
 				bar.ValueFormatter = customFormatter;
@@ -459,11 +506,12 @@ namespace StupidTally
 				e.Handled = true;//pass by the default sorting
 			}
 		}
+		
 		private void RecordButton_KeyDown(object sender, KeyEventArgs e) {
 			if (!this._recording) return;
 			e.Handled = true;
 			if (e.KeyValue >= 0 || e.Modifiers >= 0) {
-				if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Escape) {
+				if (e.KeyCode == Keys.Escape) {
 					this._recording = false;
 					this.recordLabel.ForeColor = DefaultForeColor;
 					this.recordButton.ForeColor = DefaultForeColor;
@@ -490,6 +538,7 @@ namespace StupidTally
 		}
 
 		private void RecordButton_KeyPressed(object sender, KeyPressEventArgs e) {
+			if (this._recording) e.Handled = true;
 		/*	if (!this._recording) return;
 			int keyCode = -1;
 			try {
@@ -548,5 +597,6 @@ namespace StupidTally
 		private Label recentNumberLabel;
 		private ScottPlot.FormsPlot scottPlot;
 		private Label totalDiceLabel;
+		private CheckBox percentageCheckbox;
 	}
 }
