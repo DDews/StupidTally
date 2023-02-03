@@ -41,16 +41,49 @@ namespace StupidTally
 			return firstVal.CompareTo(secondVal);
 		}
 	}
+	public enum DataActionType {
+		TallyUp,
+		AddRow,
+		DeleteRow,
+		ChangeValue,
+	}
+	public class DataAction {
+		public DataActionType Type;
+		public string[] KeyValuePair;
+		public string PreviousTally;
+		public DataAction(DataActionType type, string[] keyValuePair, string previousTally) {
+			Type = type;
+			KeyValuePair = keyValuePair;
+			if (keyValuePair.Length < 2 || keyValuePair.Length > 3) throw new Exception($"Invalid keyValuePair: {keyValuePair}");
+			PreviousTally = previousTally;
+		}
+		public DataAction(DataActionType type, string key, string value, string previousTally) {
+			Type = type;
+			KeyValuePair = new string[] {key, value};
+			PreviousTally = previousTally;
+		}
+		public override bool Equals(object obj) {
+			DataAction b = (DataAction)obj;
+			if (b == null) return false;
+			if (!b.Type.Equals(this.Type)) return false;
+			if (b.KeyValuePair.Length != this.KeyValuePair.Length) return false;
+			for(var i = 0; i < this.KeyValuePair.Length; i++) {
+				if (b.KeyValuePair[i] != this.KeyValuePair[i]) return false;
+			}
+			return true;
+		}
+	}
 	public class Settings 
 	{
-	
 		public const string KeyBindings = "KeyBindings";
 		public const string TypeDigitModifier = "TypeDigitModifier";
 		public const string ExportToFile = "ExportToFile";
 		public const string LoadCSV = "LoadCSV";
 		public const string AcceptNumber = "AcceptNumber";
 		public const string RejectNumber = "RejectNumber";
-		public string[] KeyNamesSorted = new string[] { TypeDigitModifier, AcceptNumber, RejectNumber, ExportToFile, LoadCSV };
+		public const string Undo = "Undo";
+		public const string Redo = "Redo";
+		public string[] KeyNamesSorted = new string[] { TypeDigitModifier, AcceptNumber, RejectNumber, ExportToFile, LoadCSV, Undo, Redo };
 		public Dictionary<string,Setting> Data;
 		public Settings() {
 			this.Data = new Dictionary<string,Setting>();
@@ -90,6 +123,8 @@ namespace StupidTally
 	}
 	partial class Form1
 	{
+		public int HistoryIndex = 0;
+		public List<DataAction> ActionHistory = new List<DataAction>();
 		private readonly HotkeyBinder _hotkeyBinder = new HotkeyBinder();
 		private IniFile IniFile = null;
 		private Settings Settings = null;
@@ -369,6 +404,12 @@ namespace StupidTally
 			// #5) Load from CSV File
 			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.LoadCSV, new Keys[] { Keys.Control | Keys.Shift, Keys.O } /* CTRL+SHIFT+O*/);
 
+			// #6) Undo
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.Undo, new Keys[] { Keys.Control | Keys.Alt, Keys.Z } /* CTRL+SHIFT+O*/);
+
+			// #7) Redo
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.Redo, new Keys[] { Keys.Control | Keys.Alt, Keys.Y } /* CTRL+SHIFT+O*/);
+
 
 
 			// Setup Shortcut Grid in form
@@ -426,14 +467,14 @@ namespace StupidTally
 			if (e.KeyCode == Keys.Delete) {
 				if (this.dataGrid.SelectedCells.Count > 0) {
 					var rowIndex = this.dataGrid.SelectedCells[0].RowIndex;
-					var damageNumber = this.dataGrid.Rows[rowIndex].Cells[0].Value;
+					var damageNumber = this.dataGrid.Rows[rowIndex].Cells[0].Value.ToString();
+					var damageTally = this.dataGrid.Rows[rowIndex].Cells[1].Value.ToString();
 					var confirmResult = MessageBox.Show($"Are you sure to delete tallies for {damageNumber}?",
 									 "Confirm Deletion!",
 									 MessageBoxButtons.YesNo);
 					if (confirmResult == DialogResult.Yes) {
-						_totalTallied--;
-						this.Text = $"Stupid Tally - Total Tallied: {_totalTallied}";
-						this.dataGrid.Rows.RemoveAt(rowIndex);
+						var action = AddActionToHistory(DataActionType.DeleteRow, new string[] { damageNumber, damageTally });
+						ProcessAction(action);
 					}
 				}
 			}
@@ -445,7 +486,6 @@ namespace StupidTally
 			}
 			dataGrid.Sort(new DataGridNumericComparer());
 			this.totalDiceLabel.Text = $"Total: {this.dataGrid.Rows.Count}";
-			DrawHistogram();
 		}
 
 		private void DrawHistogram() {

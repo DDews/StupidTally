@@ -1,0 +1,2 @@
+stretch goals:
+1) add ability to draw on other screen (overlay over game)

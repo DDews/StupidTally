@@ -2,6 +2,7 @@ using Shortcut;
 using System.ComponentModel;
 using System.Drawing.Imaging;
 using System.Text;
+using System.Linq;
 
 namespace StupidTally
 {
@@ -12,6 +13,7 @@ namespace StupidTally
 		private List<Hotkey> _hotkeys = new List<Hotkey>();
 		private string _tempDigits;
 		private static int _totalTallied = 0;
+		private static string _previousTally = "";
 
 		public Form1() {
 			InitializeComponent();
@@ -141,6 +143,12 @@ namespace StupidTally
 						case Settings.RejectNumber:
 							if (!_hotkeyBinder.IsHotkeyAlreadyBound(hotkey)) _hotkeyBinder.Bind(hotkey).To(RejectNumberCallback);
 							break;
+						case Settings.Undo:
+							if (!_hotkeyBinder.IsHotkeyAlreadyBound(hotkey)) _hotkeyBinder.Bind(hotkey).To(UndoLastAction);
+							break;
+						case Settings.Redo:
+							if (!_hotkeyBinder.IsHotkeyAlreadyBound(hotkey)) _hotkeyBinder.Bind(hotkey).To(RedoLastAction);
+							break;
 						default:
 							break;
 					}
@@ -150,6 +158,18 @@ namespace StupidTally
 					BindTypeDigitModifier(StringToModifiers(setting.Value));
 				}
 			}
+		}
+
+		private void RedoLastAction() {
+			if (this.HistoryIndex < this.ActionHistory.Count) {
+				var action = this.ActionHistory[HistoryIndex];
+				this.HistoryIndex++;
+				ProcessAction(action);
+			}
+		}
+
+		private void UndoLastAction() {
+			UndoAction();
 		}
 
 		private void CreateAndRememberHotkey(Action action, Modifiers modifiers, Keys keys = Keys.None) {
@@ -263,13 +283,142 @@ namespace StupidTally
 		private void AcceptNumberCallback() {
 			if (_recording) return;
 			if (string.IsNullOrWhiteSpace(_tempDigits)) return;
-			//this.dataGrid.Rows.Add(new string[] { _tempDigits, "1" });
-			this.recentNumberLabel.Text = $"Recent: {_tempDigits}";
-			_totalTallied++;
+			bool numberExists = false;
+			if (this.dataGrid.Rows.Count > 0) {
+				var rowCollection = this.dataGrid.Rows.Cast<DataGridViewRow>();
+				numberExists = rowCollection.Any(x => x.Cells[0].Value.ToString().Equals(_tempDigits));
+			}
+			DataAction action = null;
+			if (numberExists)
+			{
+				action = AddActionToHistory(DataActionType.TallyUp,new string[] {_tempDigits,"0"});
+			} else {
+				action = AddActionToHistory(DataActionType.AddRow,new string[] {_tempDigits,"1" });
+			}
+			ProcessAction(action);
+		}
+
+		private void CalcTotalTallied() {
+			int output = 0;
+			foreach (DataGridViewRow row in dataGrid.Rows) {
+				string rowTallyStr = row.Cells[1].Value.ToString();
+				int rowTally = 0;
+				try {
+					rowTally = int.Parse(rowTallyStr);
+				} catch (Exception ex) {
+
+				}
+				output += rowTally;
+			}
+			_totalTallied = output;
+		}
+		private void ProcessAction(DataAction action) {
+			_previousTally = action.PreviousTally;
+			switch (action.Type) {
+				case DataActionType.TallyUp:
+					_previousTally = action.KeyValuePair[0];
+					AddTally(action.KeyValuePair[0]);
+					_totalTallied++;
+					break;
+				case DataActionType.AddRow:
+					_previousTally = action.KeyValuePair[0];
+					AddDataRow(action.KeyValuePair[0], action.KeyValuePair[1]);
+					_totalTallied++;
+					break;
+				case DataActionType.DeleteRow:
+					DeleteDataRow(action.KeyValuePair[0]);
+					CalcTotalTallied();
+					break;
+				case DataActionType.ChangeValue:
+					ChangeDataValue(action.KeyValuePair[0], action.KeyValuePair[1]);
+					_previousTally = action.KeyValuePair[0];
+					CalcTotalTallied();
+					break;
+				default:
+					break;
+			}
+			ClearDigits();
+			SortGrid();
+			DrawHistogram();
+			this.recentNumberLabel.Text = $"Recent: {_previousTally}";
+			this.totalDiceLabel.Text = $"Total: {this.dataGrid.Rows.Count}";
 			this.Text = $"Stupid Tally - Total Tallied: {_totalTallied}";
+		}
+		private void ReverseAction(DataAction action) {
+			_previousTally = action.PreviousTally;
+			switch (action.Type) {
+				case DataActionType.TallyUp:
+					UndoTally(action.KeyValuePair[0]);
+					_totalTallied--;
+					break;
+				case DataActionType.AddRow:
+					DeleteDataRow(action.KeyValuePair[0]);
+					CalcTotalTallied();
+					break;
+				case DataActionType.DeleteRow:
+					AddDataRow(action.KeyValuePair[0], action.KeyValuePair[1]);
+					_totalTallied++;
+					break;
+				case DataActionType.ChangeValue:
+					ChangeDataValue(action.KeyValuePair[0], action.KeyValuePair[1]);
+					CalcTotalTallied();
+					break;
+				default:
+					break;
+			}
+			ClearDigits();
+			SortGrid();
+			DrawHistogram();
+			this.recentNumberLabel.Text = $"Recent: {_previousTally}";
+			this.totalDiceLabel.Text = $"Total: {this.dataGrid.Rows.Count}";
+			this.Text = $"Stupid Tally - Total Tallied: {_totalTallied}";
+		}
+		// Add an action to the recorded history of actions taken.
+		// For continuity to allow us to perform undo/redo
+		private DataAction AddActionToHistory(DataActionType type, string[] vals) {
+			var action = new DataAction(type,vals,_previousTally);
+			
+			// check if we've already undone actions and are "in the past"
+			// so we can clean up "time paradoxes"
+			if (this.HistoryIndex < this.ActionHistory.Count) {
+				if (this.HistoryIndex < this.ActionHistory.Count - 1){ 
+					// is this action the same as the next one?
+					var nextAction = this.ActionHistory[this.HistoryIndex + 1];
+					if (nextAction.Equals(action)) {
+						// we're replaying history, so don't prune the branch yet
+						this.HistoryIndex++;
+						return this.ActionHistory[this.HistoryIndex];
+					}
+				}
+				// We create a new path of actions and rewrite history,
+				// so we remove all actions from the previous branch of history
+				for(var i = this.ActionHistory.Count; i > this.HistoryIndex; i--) {
+					this.ActionHistory.RemoveAt(i);
+				}
+			}
+			// add this action to the recorded history of actions for undo/redo
+			this.ActionHistory.Add(action);
+			this.HistoryIndex++;
+			return action;
+		}
+		// Undo the previous action recorded in history
+		// and move the pointer HistoryIndex down by 1
+		private DataAction UndoAction() {
+			if (this.HistoryIndex <= 0) {
+				this.HistoryIndex = 0;
+				this.scottPlot.Plot.ResetLayout();
+				return null;
+			}
+			HistoryIndex--;
+			var action = this.ActionHistory[HistoryIndex];
+			ReverseAction(action);
+			return action;
+		}
+		private void AddTally(string key) {
 			foreach (DataGridViewRow row in dataGrid.Rows) {
 				if (row.Cells.Count > 0 && row.Cells[0].Value != null) {
-					if (row.Cells[0].Value.ToString().Equals(_tempDigits)) {
+					var cell = row.Cells[0];
+					if (cell.Value != null && cell.Value.ToString().Equals(key)) {
 						string strValue = row.Cells[1].Value.ToString();
 						int intValue = 0;
 						try {
@@ -279,15 +428,58 @@ namespace StupidTally
 						}
 						intValue++;
 						row.Cells[1].Value = $"{intValue}";
-						ClearDigits();
-						SortGrid();
 						return;
 					}
 				}
 			}
-			dataGrid.Rows.Add(new string[] { _tempDigits, "1"});
-			ClearDigits();
-			SortGrid();
+
+		}
+		private void UndoTally(string key) {
+			foreach (DataGridViewRow row in dataGrid.Rows) {
+				if (row.Cells.Count > 0 && row.Cells[0].Value != null) {
+					var cell = row.Cells[0];
+					if (cell.Value != null && cell.Value.ToString().Equals(key)) {
+						string strValue = row.Cells[1].Value.ToString();
+						int intValue = 0;
+						try {
+							intValue = int.Parse(strValue);
+						} catch (Exception ex) {
+
+						}
+						intValue--;
+						row.Cells[1].Value = $"{intValue}";
+						return;
+					}
+				}
+			}
+
+		}
+		private void AddDataRow(string key, string val) {
+			this.dataGrid.Rows.Add(new string[] {key, val });
+		}
+		private void ChangeDataValue(string key, string val) {
+			for (var i = 0; i < dataGrid.Rows.Count; i++) {
+				var row = dataGrid.Rows[i];
+				if (row.Cells.Count > 0 && row.Cells[0].Value != null) {
+					var cell = row.Cells[0];
+					if (cell.Value != null && cell.Value.ToString().Equals(key)) {
+						dataGrid.Rows[i].Cells[1].Value = val.ToString();
+						return;
+					}
+				}
+			}
+		}
+		private void DeleteDataRow(string key) {
+			for (var i = 0; i < dataGrid.Rows.Count; i++) {
+				var row = dataGrid.Rows[i];
+				if (row.Cells.Count > 0 && row.Cells[0].Value != null) {
+					var cell = row.Cells[0];
+					if (cell.Value != null && cell.Value.ToString().Equals(key)) {
+						dataGrid.Rows.RemoveAt(i);
+						return;
+					}
+				}
+			}
 		}
 		private void ExportToFileCallback() {
 			if (_recording) return;
@@ -359,7 +551,7 @@ namespace StupidTally
 		private void LoadFromCSVFileCallback() {
 			if (_recording) return;
 			if (dataGrid.Rows.Count > 0) {
-				var confirmResult = MessageBox.Show($"You will lose your current progress. Are you sure you want to load data from a CSV file?",
+				var confirmResult = MessageBox.Show($"You will lose your current progress and undo/redo history. Are you sure you want to load data from a CSV file?",
 									 "Confirm Starting Over?",
 									 MessageBoxButtons.YesNo);
 				if (confirmResult == DialogResult.No) {
@@ -413,8 +605,15 @@ namespace StupidTally
 						dataGrid.Rows.Add(new string[] { values[0], values[1] });
 					}
 					_totalTallied = newTotal;
+					_previousTally = "";
 					this.Text = $"Stupid Tally - Total Tallied: {_totalTallied}";
+					this.recentNumberLabel.Text = $"Recent:";
 					SortGrid();
+					DrawHistogram();
+					// the history of actions taken is not recorded in the CSV file
+					// so our new starting point has data already collected
+					this.ActionHistory = new List<DataAction>();
+					this.HistoryIndex = 0;
 				}
 			} catch (Exception) {
 				throw;
