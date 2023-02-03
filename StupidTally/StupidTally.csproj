@@ -27,7 +27,7 @@
     <None Update="Shortcut.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="StupidTally-Labelled-window.png">
+    <None Update="Stupid-Tally-2-5-0-ReadMe.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
