@@ -53,10 +53,13 @@ This will create a fresh, new INI file with the default bindings.
 	CTRL+SHIFT+O (LoadCSV)
 		to import the data table from a CSV file
 		(to resume testing from a previous session)
-	CTRL+ALT+Z (Undo)
+	CTRL+SHIFT+Z (Undo)
 		to undo the last action done to the data grid
-	CTRL+ALT+Y (Redo)
+	CTRL+SHIFT+Y (Redo)
 		to redo the last undone action to the data grid
+	CTRL+SHIT+N (NewFile)
+		start over recording new data for a new csv and png file
+
 ### **(Ba) (Bb)** "Changing the Global Keybindings"
 1. Simply click any cell within **(Ba)**`List of Shortcuts` to select the keybinding you wish to change.
 

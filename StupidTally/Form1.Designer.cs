@@ -406,10 +406,10 @@ namespace StupidTally
 			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.LoadCSV, new Keys[] { Keys.Control | Keys.Shift, Keys.O } /*CTRL+SHIFT+O*/);
 
 			// #6) Undo
-			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.Undo, new Keys[] { Keys.Control | Keys.Shift, Keys.Z } /*CTRL+SHIFT+O*/);
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.Undo, new Keys[] { Keys.Control | Keys.Shift, Keys.Z } /*CTRL+SHIFT+Z*/);
 
 			// #7) Redo
-			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.Redo, new Keys[] { Keys.Control | Keys.Shift, Keys.Y } /*CTRL+SHIFT+O*/);
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.Redo, new Keys[] { Keys.Control | Keys.Shift, Keys.Y } /*CTRL+SHIFT+Y*/);
 
 			// #8) New File
 			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.NewFile, new Keys[] { Keys.Control | Keys.Shift, Keys.N } /*CTRL+SHIFT+N*/);
