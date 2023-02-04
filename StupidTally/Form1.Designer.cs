@@ -83,7 +83,8 @@ namespace StupidTally
 		public const string RejectNumber = "RejectNumber";
 		public const string Undo = "Undo";
 		public const string Redo = "Redo";
-		public string[] KeyNamesSorted = new string[] { TypeDigitModifier, AcceptNumber, RejectNumber, ExportToFile, LoadCSV, Undo, Redo };
+		public const string NewFile = "NewFile";
+		public string[] KeyNamesSorted = new string[] { TypeDigitModifier, AcceptNumber, RejectNumber, ExportToFile, LoadCSV, Undo, Redo, NewFile };
 		public Dictionary<string,Setting> Data;
 		public Settings() {
 			this.Data = new Dictionary<string,Setting>();
@@ -243,9 +244,9 @@ namespace StupidTally
 			this.totalDiceLabel.AutoSize = true;
 			this.totalDiceLabel.Location = new System.Drawing.Point(6, 395);
 			this.totalDiceLabel.Name = "totalDiceLabel";
-			this.totalDiceLabel.Size = new System.Drawing.Size(44, 15);
+			this.totalDiceLabel.Size = new System.Drawing.Size(47, 15);
 			this.totalDiceLabel.TabIndex = 3;
-			this.totalDiceLabel.Text = "Total: 0";
+			this.totalDiceLabel.Text = "Rows: 0";
 			this.totalDiceLabel.Click += new System.EventHandler(this.totalDiceLabel_Click);
 			// 
 			// scottPlot
@@ -390,26 +391,28 @@ namespace StupidTally
 			// KeyBindings section of settings ini
 
 			// #1) Type Digit Modifier
-			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.TypeDigitModifier, new Keys[] { Keys.Alt | Keys.Shift } /* ALT+SHIFT (+digit) */);
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.TypeDigitModifier, new Keys[] { Keys.Alt | Keys.Shift } /*ALT+SHIFT (+digit)*/);
 
 			// #2) Accept inputted number
-			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.AcceptNumber, new Keys[] { Keys.Alt | Keys.Shift, Keys.End } /* Alt+Shift+End */ );
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.AcceptNumber, new Keys[] { Keys.Alt | Keys.Shift, Keys.End } /*ALT+SHIFT+END*/ );
 
 			// #3)  Reject inputted number
-			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.RejectNumber, new Keys[] { Keys.Alt | Keys.Shift, Keys.Delete } /* Alt+Shift+Delete */);
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.RejectNumber, new Keys[] { Keys.Alt | Keys.Shift, Keys.Delete } /*Alt+SHIFT+DELETE*/);
 
 			// #4) Export to Files
-			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.ExportToFile, new Keys[] { Keys.Control | Keys.Shift, Keys.S } /* CTRL+SHIFT+S*/);
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.ExportToFile, new Keys[] { Keys.Control | Keys.Shift, Keys.S } /*CTRL+SHIFT+S*/);
 
 			// #5) Load from CSV File
-			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.LoadCSV, new Keys[] { Keys.Control | Keys.Shift, Keys.O } /* CTRL+SHIFT+O*/);
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.LoadCSV, new Keys[] { Keys.Control | Keys.Shift, Keys.O } /*CTRL+SHIFT+O*/);
 
 			// #6) Undo
-			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.Undo, new Keys[] { Keys.Control | Keys.Alt, Keys.Z } /* CTRL+SHIFT+O*/);
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.Undo, new Keys[] { Keys.Control | Keys.Shift, Keys.Z } /*CTRL+SHIFT+O*/);
 
 			// #7) Redo
-			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.Redo, new Keys[] { Keys.Control | Keys.Alt, Keys.Y } /* CTRL+SHIFT+O*/);
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.Redo, new Keys[] { Keys.Control | Keys.Shift, Keys.Y } /*CTRL+SHIFT+O*/);
 
+			// #8) New File
+			ReadOrSetValue(readSettings, Settings.KeyBindings, Settings.NewFile, new Keys[] { Keys.Control | Keys.Shift, Keys.N } /*CTRL+SHIFT+N*/);
 
 
 			// Setup Shortcut Grid in form
@@ -438,6 +441,16 @@ namespace StupidTally
 		}
 
 		protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {
+			if ((Keys.Enter) == keyData) {
+				if (this.shortcutGrid.Focused) {
+					if (shortcutGrid.SelectedCells.Count > 0) _selectedShortcutIndex = shortcutGrid.SelectedCells[0].RowIndex;
+					this.recordButton.ForeColor = Color.Crimson;
+					_recording = true;
+					TemporarilyUnbindHotkeys();
+					_tempKeys.Clear();
+					return true;
+				}
+			}
 			if (keyData.HasFlag(Keys.Alt) && (Keys.Alt | Keys.Enter) == keyData) {
 				if (this._recording) {
 					this.recordLabel.ForeColor = Color.Crimson; 
@@ -452,6 +465,9 @@ namespace StupidTally
 			return base.ProcessCmdKey(ref msg, keyData);
 		}
 		private void shortcutGrid_KeyDown(object sender, KeyEventArgs e) {
+			if (!this._recording) {
+				return;
+			}
 			if (e.KeyCode > 0 && ((e.KeyData & ~ModifierKeys & ~Keys.Menu) != Keys.None)) {
 				e.Handled = true;
 			}
@@ -486,12 +502,18 @@ namespace StupidTally
 				column.SortMode = DataGridViewColumnSortMode.NotSortable;
 			}
 			dataGrid.Sort(new DataGridNumericComparer());
-			this.totalDiceLabel.Text = $"Total: {this.dataGrid.Rows.Count}";
+			this.totalDiceLabel.Text = $"Rows: {this.dataGrid.Rows.Count}";
 		}
 
 		private void DrawHistogram() {
-			if (_totalTallied <= 1) return;
-			this.scottPlot.Plot.Style(figureBackground: DefaultBackColor);
+			if (_totalTallied <= 1) {
+				scottPlot.Plot.ResetLayout();
+				scottPlot.Plot.Clear();
+				scottPlot.Reset();
+				scottPlot.Plot.Style(figureBackground: DefaultBackColor);
+				scottPlot.Refresh();
+				return;
+			}
 			scottPlot.Reset();
 			if (dataGrid.Rows.Count > 1) {
 				List<double> values = new List<double>();
@@ -537,6 +559,9 @@ namespace StupidTally
 				plt.XAxis.Label("Damage");
 				plt.SetAxisLimits(yMin: 0,yMax: maxY + 5,xMin: minX - 1,xMax: maxX + 1);
 				scottPlot.Refresh();
+			} else {
+				scottPlot.Plot.Clear();
+				scottPlot.Plot.ResetLayout();
 			}
 		}
 

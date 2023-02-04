@@ -16,6 +16,12 @@ namespace StupidTally
 		private string _tempDigits;
 		private static int _totalTallied = 0;
 		private static string _previousTally = "";
+		private static Keys[] DigitKeys = new Keys[] {
+			Keys.D1,Keys.D2,Keys.D3, Keys.D4, Keys.D4, Keys.D5, 
+			Keys.D6, Keys.D7, Keys.D8, Keys.D9, Keys.D0, 
+			Keys.NumPad1, Keys.NumPad2, Keys.NumPad3, Keys.NumPad3, Keys.NumPad4, Keys.NumPad5, 
+			Keys.NumPad6, Keys.NumPad7, Keys.NumPad8, Keys.NumPad9, Keys.NumPad0
+		};
 
 		public Form1() {
 			InitializeComponent();
@@ -75,6 +81,15 @@ namespace StupidTally
 				var pairSetting = pair.Value;
 				if (pair.Key == keyName && pair.Value.Equals(keyString)) {
 					return;
+				}
+				if (pairSetting.KeyName.Equals(Settings.TypeDigitModifier)) {
+					if (DigitKeys.Contains(_tempKeys.Last()))
+					{
+						if (pairSetting.Value.Equals(string.Join("+", _tempKeys.GetRange(0,_tempKeys.Count - 1)))) {
+							MessageBox.Show($"This shortcut combination is already being used for: '{pair.Key}'!");
+							return;
+						}
+					}
 				}
 				if (pairSetting.Value.Equals(keyString)) {
 					MessageBox.Show($"This shortcut combination is already being used for: '{pair.Key}'!");
@@ -155,10 +170,13 @@ namespace StupidTally
 							if (!_hotkeyBinder.IsHotkeyAlreadyBound(hotkey)) _hotkeyBinder.Bind(hotkey).To(RejectNumberCallback);
 							break;
 						case Settings.Undo:
-							if (!_hotkeyBinder.IsHotkeyAlreadyBound(hotkey)) _hotkeyBinder.Bind(hotkey).To(UndoLastAction);
+							if (!_hotkeyBinder.IsHotkeyAlreadyBound(hotkey)) _hotkeyBinder.Bind(hotkey).To(UndoLastActionCallback);
 							break;
 						case Settings.Redo:
-							if (!_hotkeyBinder.IsHotkeyAlreadyBound(hotkey)) _hotkeyBinder.Bind(hotkey).To(RedoLastAction);
+							if (!_hotkeyBinder.IsHotkeyAlreadyBound(hotkey)) _hotkeyBinder.Bind(hotkey).To(RedoLastActionCallback);
+							break;
+						case Settings.NewFile:
+							if (!_hotkeyBinder.IsHotkeyAlreadyBound(hotkey)) _hotkeyBinder.Bind(hotkey).To(NewFileCallback);
 							break;
 						default:
 							break;
@@ -171,7 +189,26 @@ namespace StupidTally
 			}
 		}
 
-		private void RedoLastAction() {
+		private void NewFileCallback() {
+			var confirmResult = MessageBox.Show($"You will lose your current progress and undo/redo history. Are you sure you want to start over?",
+									 "Confirm Starting Over?",
+									 MessageBoxButtons.YesNo);
+			if (confirmResult == DialogResult.Yes) {
+				this.dataGrid.Rows.Clear();
+				_totalTallied = 0;
+				_previousTally = "";
+				this.scottPlot.Plot.Clear();
+				this.scottPlot.Plot.ResetLayout();
+				this.scottPlot.Reset();
+				this.Text = "Stupid Tally";
+				this.recentNumberLabel.Text = "Recent: ";
+				this.totalDiceLabel.Text = "Rows: 0";
+				this.scottPlot.Plot.Style(figureBackground: DefaultBackColor);
+				this.scottPlot.Refresh();
+			}
+		}
+
+		private void RedoLastActionCallback() {
 			if (this._recording) return;
 			if (this.HistoryIndex < this.ActionHistory.Count) {
 				var action = this.ActionHistory[HistoryIndex];
@@ -182,7 +219,7 @@ namespace StupidTally
 			}
 		}
 
-		private void UndoLastAction() {
+		private void UndoLastActionCallback() {
 			if (this._recording) return;
 			UndoAction();
 		}
@@ -292,7 +329,7 @@ namespace StupidTally
 		private void RejectNumberCallback() {
 			if (_recording) return;
 			ClearDigits();
-			this.damageLabel.ForeColor = DefaultForeColor;
+			this.damageLabel.ForeColor = Color.DarkGray;
 		}
 
 		private void AcceptNumberCallback() {
@@ -357,7 +394,7 @@ namespace StupidTally
 			SortGrid();
 			DrawHistogram();
 			this.recentNumberLabel.Text = $"Recent: {_previousTally}";
-			this.totalDiceLabel.Text = $"Total: {this.dataGrid.Rows.Count}";
+			this.totalDiceLabel.Text = $"Rows: {this.dataGrid.Rows.Count}";
 			this.Text = $"Stupid Tally - Total Tallied: {_totalTallied}";
 		}
 		private void ReverseAction(DataAction action) {
@@ -387,7 +424,7 @@ namespace StupidTally
 			SortGrid();
 			DrawHistogram();
 			this.recentNumberLabel.Text = $"Recent: {_previousTally}";
-			this.totalDiceLabel.Text = $"Total: {this.dataGrid.Rows.Count}";
+			this.totalDiceLabel.Text = $"Rows: {this.dataGrid.Rows.Count}";
 			this.Text = $"Stupid Tally - Total Tallied: {_totalTallied}";
 		}
 		// Add an action to the recorded history of actions taken.
@@ -614,7 +651,7 @@ namespace StupidTally
 					// input file looks good. clear data to start fresh
 					this.recentNumberLabel.Text = "Recent:";
 					this.dataGrid.Rows.Clear();
-					this.totalDiceLabel.Text = "Total: 0";
+					this.totalDiceLabel.Text = "Rows: 0";
 					ClearDigits();
 					scottPlot.Reset();
 					int newTotal = 0;
