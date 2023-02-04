@@ -426,6 +426,7 @@ namespace StupidTally
 				this.IniFile.Write(setting.KeyName,setting.Value, setting.SectionName);
 			}
 			this.shortcutGrid.KeyDown += shortcutGrid_KeyDown;
+			this.dataGrid.CellDoubleClick += new System.Windows.Forms.DataGridViewCellEventHandler(dataGrid_CellDoubleClick);
 			this.KeyPress += RecordButton_KeyPressed;
 			this.KeyUp += RecordButton_KeyUp;
 			this.KeyDown += RecordButton_KeyDown;

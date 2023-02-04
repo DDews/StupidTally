@@ -3,9 +3,11 @@ using System.ComponentModel;
 using System.Drawing.Imaging;
 using System.Text;
 using System.Linq;
+using System.Media;
 
 namespace StupidTally
 {
+	
 	public partial class Form1 : Form
 	{
 		private Hotkey _tempHotkey = null;
@@ -37,6 +39,15 @@ namespace StupidTally
 
 		private void label1_Click_1(object sender, EventArgs e) {
 
+		}
+		private void dataGrid_CellDoubleClick(object sender, DataGridViewCellEventArgs e) {
+			var damageValue = this.dataGrid.Rows[e.RowIndex].Cells[0].Value.ToString();
+			var cellValue = this.dataGrid.Rows[e.RowIndex].Cells[1].Value.ToString();
+			string promptValue = Prompt.ShowDialog($"Enter a new value for damage value '{damageValue}' instead of '{cellValue}':", cellValue);
+			if (!string.IsNullOrWhiteSpace(promptValue)) {
+				var action = this.AddActionToHistory(DataActionType.ChangeValue,new string[] { damageValue, promptValue, cellValue});
+				this.ProcessAction(action);
+			}
 		}
 
 		private void SaveTempKeysToSelectedShortcut() {
@@ -161,14 +172,18 @@ namespace StupidTally
 		}
 
 		private void RedoLastAction() {
+			if (this._recording) return;
 			if (this.HistoryIndex < this.ActionHistory.Count) {
 				var action = this.ActionHistory[HistoryIndex];
 				this.HistoryIndex++;
 				ProcessAction(action);
+			} else {
+				SystemSounds.Beep.Play();
 			}
 		}
 
 		private void UndoLastAction() {
+			if (this._recording) return;
 			UndoAction();
 		}
 
@@ -313,6 +328,7 @@ namespace StupidTally
 			_totalTallied = output;
 		}
 		private void ProcessAction(DataAction action) {
+			System.Diagnostics.Debug.WriteLine($"ProcessActioon({action.ToString()})");
 			_previousTally = action.PreviousTally;
 			switch (action.Type) {
 				case DataActionType.TallyUp:
@@ -345,6 +361,7 @@ namespace StupidTally
 			this.Text = $"Stupid Tally - Total Tallied: {_totalTallied}";
 		}
 		private void ReverseAction(DataAction action) {
+			System.Diagnostics.Debug.WriteLine($"ReverseAction({action.ToString()})");
 			_previousTally = action.PreviousTally;
 			switch (action.Type) {
 				case DataActionType.TallyUp:
@@ -360,7 +377,7 @@ namespace StupidTally
 					_totalTallied++;
 					break;
 				case DataActionType.ChangeValue:
-					ChangeDataValue(action.KeyValuePair[0], action.KeyValuePair[1]);
+					ChangeDataValue(action.KeyValuePair[0], action.KeyValuePair[2]);
 					CalcTotalTallied();
 					break;
 				default:
@@ -392,9 +409,13 @@ namespace StupidTally
 				}
 				// We create a new path of actions and rewrite history,
 				// so we remove all actions from the previous branch of history
-				for(var i = this.ActionHistory.Count; i > this.HistoryIndex; i--) {
+
+				for(var i = this.ActionHistory.Count - 1; i >= this.HistoryIndex; i--) {
 					this.ActionHistory.RemoveAt(i);
 				}
+				this.ActionHistory.Add(action);
+				this.HistoryIndex++;
+				return action;
 			}
 			// add this action to the recorded history of actions for undo/redo
 			this.ActionHistory.Add(action);
@@ -404,9 +425,12 @@ namespace StupidTally
 		// Undo the previous action recorded in history
 		// and move the pointer HistoryIndex down by 1
 		private DataAction UndoAction() {
+			System.Diagnostics.Debug.WriteLine($"UndoAction()");
+			System.Diagnostics.Debug.WriteLine($"HistoryIndex: {HistoryIndex}/{ActionHistory.Count}");
 			if (this.HistoryIndex <= 0) {
 				this.HistoryIndex = 0;
 				this.scottPlot.Plot.ResetLayout();
+				SystemSounds.Beep.Play();
 				return null;
 			}
 			HistoryIndex--;
@@ -415,6 +439,7 @@ namespace StupidTally
 			return action;
 		}
 		private void AddTally(string key) {
+			System.Diagnostics.Debug.WriteLine($"AddTally({key})");
 			foreach (DataGridViewRow row in dataGrid.Rows) {
 				if (row.Cells.Count > 0 && row.Cells[0].Value != null) {
 					var cell = row.Cells[0];
@@ -435,6 +460,7 @@ namespace StupidTally
 
 		}
 		private void UndoTally(string key) {
+			System.Diagnostics.Debug.WriteLine($"UndoTally({key})");
 			foreach (DataGridViewRow row in dataGrid.Rows) {
 				if (row.Cells.Count > 0 && row.Cells[0].Value != null) {
 					var cell = row.Cells[0];
@@ -455,9 +481,11 @@ namespace StupidTally
 
 		}
 		private void AddDataRow(string key, string val) {
+			System.Diagnostics.Debug.WriteLine($"AddDataRow({key},{val})");
 			this.dataGrid.Rows.Add(new string[] {key, val });
 		}
 		private void ChangeDataValue(string key, string val) {
+			System.Diagnostics.Debug.WriteLine($"ChangeDataValue({key},{val})");
 			for (var i = 0; i < dataGrid.Rows.Count; i++) {
 				var row = dataGrid.Rows[i];
 				if (row.Cells.Count > 0 && row.Cells[0].Value != null) {
@@ -470,6 +498,7 @@ namespace StupidTally
 			}
 		}
 		private void DeleteDataRow(string key) {
+			System.Diagnostics.Debug.WriteLine($"DeleteDataRow({key})");
 			for (var i = 0; i < dataGrid.Rows.Count; i++) {
 				var row = dataGrid.Rows[i];
 				if (row.Cells.Count > 0 && row.Cells[0].Value != null) {

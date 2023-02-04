@@ -83,6 +83,11 @@ This table shows the X,Y columns:
 * Y: "Tally"
 	
 	The number of times this damage number was recorded
+
+You can `Double Click` a cell to change the tally number for that row.
+
+You can `Click` a cell to select, and press `Delete` to delete that row.
+
 ## **(Cb)** "Damage: Bar Graph (Histogram)"
 This shows a bar graph of the `damage numbers` for the bottom `X-axis`, and the `Tally` as the vertical `Y-axis`.
 Above each bar, a percentage will be shown.
