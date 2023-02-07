@@ -152,6 +152,7 @@ namespace StupidTally
 		///  the contents of this method with the code editor.
 		/// </summary>
 		private void InitializeComponent() {
+			System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
 			this.dataGrid = new System.Windows.Forms.DataGridView();
 			this.Damage = new System.Windows.Forms.DataGridViewTextBoxColumn();
 			this.Tally = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -364,6 +365,7 @@ namespace StupidTally
 			this.Controls.Add(this.groupBox1);
 			this.Controls.Add(this.shortcutsBox);
 			this.Controls.Add(this.damageTallyBox);
+			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
 			this.KeyPreview = true;
 			this.Name = "Form1";
 			this.Text = "Stupid Tally";

@@ -604,7 +604,7 @@ namespace StupidTally
 
 							this.scottPlot.DrawToBitmap(bmp, new Rectangle(0, 0, this.scottPlot.Width, this.scottPlot.Height));
 
-							bmp.Save(sfd.FileName, System.Drawing.Imaging.ImageFormat.Bmp);
+							bmp.Save(sfd.FileName, System.Drawing.Imaging.ImageFormat.Png);
 						} catch (Exception ex) {
 							MessageBox.Show("Error :" + ex.Message);
 						}
